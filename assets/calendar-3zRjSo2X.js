@@ -1,1 +1,0 @@
-import{j as a,C as n,T as r,aa as t,ab as e,ac as o,A as s}from"./index-B4jAaOIo.js";const d=function(){return a.jsxs(n,{maxWidth:"md",sx:{marginBottom:3,marginTop:3},children:[a.jsx(r,{variant:"h6",component:"h1",children:"2023 Experiments (Work in Progress)"}),a.jsx(t,{dateAdapter:e,children:a.jsx(o,{readOnly:!0})}),a.jsx(s,{to:"..",children:"List"})]})};export{d as component};
