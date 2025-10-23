@@ -23,11 +23,15 @@ import { Route as RunComputationLayoutImport } from './pages/run-computation/_la
 import { Route as MonitorActivitiesDetailImport } from './pages/monitor-activities/detail';
 import { Route as MonitorActivitiesCalendarImport } from './pages/monitor-activities/calendar';
 import { Route as ExploreDataIdImport } from './pages/explore-data/$id';
+import { Route as EcmExtractorLayoutImport } from './pages/ecm-extractor/_layout';
 import { Route as ContributeDataLayoutImport } from './pages/contribute-data/_layout';
 import { Route as CompareDataLayoutImport } from './pages/compare-data/_layout';
 import { Route as RunComputationLayoutIndexImport } from './pages/run-computation/_layout/index';
+import { Route as EcmExtractorLayoutIndexImport } from './pages/ecm-extractor/_layout/index';
 import { Route as ContributeDataLayoutIndexImport } from './pages/contribute-data/_layout/index';
 import { Route as CompareDataLayoutIndexImport } from './pages/compare-data/_layout/index';
+import { Route as EcmExtractorLayoutStagingImport } from './pages/ecm-extractor/_layout/staging';
+import { Route as EcmExtractorLayoutResultsImport } from './pages/ecm-extractor/_layout/results';
 import { Route as ContributeDataLayoutReviewImport } from './pages/contribute-data/_layout/review';
 import { Route as ContributeDataLayoutPortalImport } from './pages/contribute-data/_layout/portal';
 import { Route as ContributeDataLayoutNewImport } from './pages/contribute-data/_layout/new';
@@ -42,6 +46,7 @@ import { Route as RunComputationLayoutIdLayoutDataInputsImport } from './pages/r
 // Create Virtual Routes
 
 const RunComputationImport = createFileRoute('/run-computation')();
+const EcmExtractorImport = createFileRoute('/ecm-extractor')();
 const ContributeDataImport = createFileRoute('/contribute-data')();
 const CompareDataImport = createFileRoute('/compare-data')();
 const RunComputationLayoutIdImport = createFileRoute(
@@ -53,6 +58,12 @@ const RunComputationLayoutIdImport = createFileRoute(
 const RunComputationRoute = RunComputationImport.update({
   id: '/run-computation',
   path: '/run-computation',
+  getParentRoute: () => rootRoute,
+} as any);
+
+const EcmExtractorRoute = EcmExtractorImport.update({
+  id: '/ecm-extractor',
+  path: '/ecm-extractor',
   getParentRoute: () => rootRoute,
 } as any);
 
@@ -128,6 +139,11 @@ const ExploreDataIdRoute = ExploreDataIdImport.update({
   getParentRoute: () => rootRoute,
 } as any);
 
+const EcmExtractorLayoutRoute = EcmExtractorLayoutImport.update({
+  id: '/_layout',
+  getParentRoute: () => EcmExtractorRoute,
+} as any);
+
 const ContributeDataLayoutRoute = ContributeDataLayoutImport.update({
   id: '/_layout',
   getParentRoute: () => ContributeDataRoute,
@@ -150,6 +166,12 @@ const RunComputationLayoutIndexRoute = RunComputationLayoutIndexImport.update({
   getParentRoute: () => RunComputationLayoutRoute,
 } as any);
 
+const EcmExtractorLayoutIndexRoute = EcmExtractorLayoutIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EcmExtractorLayoutRoute,
+} as any);
+
 const ContributeDataLayoutIndexRoute = ContributeDataLayoutIndexImport.update({
   id: '/',
   path: '/',
@@ -160,6 +182,18 @@ const CompareDataLayoutIndexRoute = CompareDataLayoutIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CompareDataLayoutRoute,
+} as any);
+
+const EcmExtractorLayoutStagingRoute = EcmExtractorLayoutStagingImport.update({
+  id: '/staging',
+  path: '/staging',
+  getParentRoute: () => EcmExtractorLayoutRoute,
+} as any);
+
+const EcmExtractorLayoutResultsRoute = EcmExtractorLayoutResultsImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => EcmExtractorLayoutRoute,
 } as any);
 
 const ContributeDataLayoutReviewRoute = ContributeDataLayoutReviewImport.update(
@@ -269,6 +303,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContributeDataLayoutImport;
       parentRoute: typeof ContributeDataRoute;
     };
+    '/ecm-extractor': {
+      id: '/ecm-extractor';
+      path: '/ecm-extractor';
+      fullPath: '/ecm-extractor';
+      preLoaderRoute: typeof EcmExtractorImport;
+      parentRoute: typeof rootRoute;
+    };
+    '/ecm-extractor/_layout': {
+      id: '/ecm-extractor/_layout';
+      path: '/ecm-extractor';
+      fullPath: '/ecm-extractor';
+      preLoaderRoute: typeof EcmExtractorLayoutImport;
+      parentRoute: typeof EcmExtractorRoute;
+    };
     '/explore-data/$id': {
       id: '/explore-data/$id';
       path: '/explore-data/$id';
@@ -374,6 +422,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContributeDataLayoutReviewImport;
       parentRoute: typeof ContributeDataLayoutImport;
     };
+    '/ecm-extractor/_layout/results': {
+      id: '/ecm-extractor/_layout/results';
+      path: '/results';
+      fullPath: '/ecm-extractor/results';
+      preLoaderRoute: typeof EcmExtractorLayoutResultsImport;
+      parentRoute: typeof EcmExtractorLayoutImport;
+    };
+    '/ecm-extractor/_layout/staging': {
+      id: '/ecm-extractor/_layout/staging';
+      path: '/staging';
+      fullPath: '/ecm-extractor/staging';
+      preLoaderRoute: typeof EcmExtractorLayoutStagingImport;
+      parentRoute: typeof EcmExtractorLayoutImport;
+    };
     '/compare-data/_layout/': {
       id: '/compare-data/_layout/';
       path: '/';
@@ -387,6 +449,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/contribute-data/';
       preLoaderRoute: typeof ContributeDataLayoutIndexImport;
       parentRoute: typeof ContributeDataLayoutImport;
+    };
+    '/ecm-extractor/_layout/': {
+      id: '/ecm-extractor/_layout/';
+      path: '/';
+      fullPath: '/ecm-extractor/';
+      preLoaderRoute: typeof EcmExtractorLayoutIndexImport;
+      parentRoute: typeof EcmExtractorLayoutImport;
     };
     '/run-computation/_layout/': {
       id: '/run-computation/_layout/';
@@ -498,6 +567,33 @@ const ContributeDataRouteWithChildren = ContributeDataRoute._addFileChildren(
   ContributeDataRouteChildren
 );
 
+interface EcmExtractorLayoutRouteChildren {
+  EcmExtractorLayoutResultsRoute: typeof EcmExtractorLayoutResultsRoute;
+  EcmExtractorLayoutStagingRoute: typeof EcmExtractorLayoutStagingRoute;
+  EcmExtractorLayoutIndexRoute: typeof EcmExtractorLayoutIndexRoute;
+}
+
+const EcmExtractorLayoutRouteChildren: EcmExtractorLayoutRouteChildren = {
+  EcmExtractorLayoutResultsRoute: EcmExtractorLayoutResultsRoute,
+  EcmExtractorLayoutStagingRoute: EcmExtractorLayoutStagingRoute,
+  EcmExtractorLayoutIndexRoute: EcmExtractorLayoutIndexRoute,
+};
+
+const EcmExtractorLayoutRouteWithChildren =
+  EcmExtractorLayoutRoute._addFileChildren(EcmExtractorLayoutRouteChildren);
+
+interface EcmExtractorRouteChildren {
+  EcmExtractorLayoutRoute: typeof EcmExtractorLayoutRouteWithChildren;
+}
+
+const EcmExtractorRouteChildren: EcmExtractorRouteChildren = {
+  EcmExtractorLayoutRoute: EcmExtractorLayoutRouteWithChildren,
+};
+
+const EcmExtractorRouteWithChildren = EcmExtractorRoute._addFileChildren(
+  EcmExtractorRouteChildren
+);
+
 interface RunComputationLayoutIdLayoutRouteChildren {
   RunComputationLayoutIdLayoutDataInputsRoute: typeof RunComputationLayoutIdLayoutDataInputsRoute;
   RunComputationLayoutIdLayoutResultsRoute: typeof RunComputationLayoutIdLayoutResultsRoute;
@@ -566,6 +662,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/compare-data': typeof CompareDataLayoutRouteWithChildren;
   '/contribute-data': typeof ContributeDataLayoutRouteWithChildren;
+  '/ecm-extractor': typeof EcmExtractorLayoutRouteWithChildren;
   '/explore-data/$id': typeof ExploreDataIdRoute;
   '/monitor-activities/calendar': typeof MonitorActivitiesCalendarRoute;
   '/monitor-activities/detail': typeof MonitorActivitiesDetailRoute;
@@ -580,8 +677,11 @@ export interface FileRoutesByFullPath {
   '/contribute-data/new': typeof ContributeDataLayoutNewRoute;
   '/contribute-data/portal': typeof ContributeDataLayoutPortalRoute;
   '/contribute-data/review': typeof ContributeDataLayoutReviewRoute;
+  '/ecm-extractor/results': typeof EcmExtractorLayoutResultsRoute;
+  '/ecm-extractor/staging': typeof EcmExtractorLayoutStagingRoute;
   '/compare-data/': typeof CompareDataLayoutIndexRoute;
   '/contribute-data/': typeof ContributeDataLayoutIndexRoute;
+  '/ecm-extractor/': typeof EcmExtractorLayoutIndexRoute;
   '/run-computation/': typeof RunComputationLayoutIndexRoute;
   '/run-computation/$id': typeof RunComputationLayoutIdLayoutRouteWithChildren;
   '/run-computation/$id/data-inputs': typeof RunComputationLayoutIdLayoutDataInputsRoute;
@@ -594,6 +694,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/compare-data': typeof CompareDataLayoutIndexRoute;
   '/contribute-data': typeof ContributeDataLayoutIndexRoute;
+  '/ecm-extractor': typeof EcmExtractorLayoutIndexRoute;
   '/explore-data/$id': typeof ExploreDataIdRoute;
   '/monitor-activities/calendar': typeof MonitorActivitiesCalendarRoute;
   '/monitor-activities/detail': typeof MonitorActivitiesDetailRoute;
@@ -608,6 +709,8 @@ export interface FileRoutesByTo {
   '/contribute-data/new': typeof ContributeDataLayoutNewRoute;
   '/contribute-data/portal': typeof ContributeDataLayoutPortalRoute;
   '/contribute-data/review': typeof ContributeDataLayoutReviewRoute;
+  '/ecm-extractor/results': typeof EcmExtractorLayoutResultsRoute;
+  '/ecm-extractor/staging': typeof EcmExtractorLayoutStagingRoute;
   '/run-computation/$id': typeof RunComputationLayoutIdLayoutRouteWithChildren;
   '/run-computation/$id/data-inputs': typeof RunComputationLayoutIdLayoutDataInputsRoute;
   '/run-computation/$id/results': typeof RunComputationLayoutIdLayoutResultsRoute;
@@ -622,6 +725,8 @@ export interface FileRoutesById {
   '/compare-data/_layout': typeof CompareDataLayoutRouteWithChildren;
   '/contribute-data': typeof ContributeDataRouteWithChildren;
   '/contribute-data/_layout': typeof ContributeDataLayoutRouteWithChildren;
+  '/ecm-extractor': typeof EcmExtractorRouteWithChildren;
+  '/ecm-extractor/_layout': typeof EcmExtractorLayoutRouteWithChildren;
   '/explore-data/$id': typeof ExploreDataIdRoute;
   '/monitor-activities/calendar': typeof MonitorActivitiesCalendarRoute;
   '/monitor-activities/detail': typeof MonitorActivitiesDetailRoute;
@@ -637,8 +742,11 @@ export interface FileRoutesById {
   '/contribute-data/_layout/new': typeof ContributeDataLayoutNewRoute;
   '/contribute-data/_layout/portal': typeof ContributeDataLayoutPortalRoute;
   '/contribute-data/_layout/review': typeof ContributeDataLayoutReviewRoute;
+  '/ecm-extractor/_layout/results': typeof EcmExtractorLayoutResultsRoute;
+  '/ecm-extractor/_layout/staging': typeof EcmExtractorLayoutStagingRoute;
   '/compare-data/_layout/': typeof CompareDataLayoutIndexRoute;
   '/contribute-data/_layout/': typeof ContributeDataLayoutIndexRoute;
+  '/ecm-extractor/_layout/': typeof EcmExtractorLayoutIndexRoute;
   '/run-computation/_layout/': typeof RunComputationLayoutIndexRoute;
   '/run-computation/_layout/$id': typeof RunComputationLayoutIdRouteWithChildren;
   '/run-computation/_layout/$id/_layout': typeof RunComputationLayoutIdLayoutRouteWithChildren;
@@ -654,6 +762,7 @@ export interface FileRouteTypes {
     | '/'
     | '/compare-data'
     | '/contribute-data'
+    | '/ecm-extractor'
     | '/explore-data/$id'
     | '/monitor-activities/calendar'
     | '/monitor-activities/detail'
@@ -668,8 +777,11 @@ export interface FileRouteTypes {
     | '/contribute-data/new'
     | '/contribute-data/portal'
     | '/contribute-data/review'
+    | '/ecm-extractor/results'
+    | '/ecm-extractor/staging'
     | '/compare-data/'
     | '/contribute-data/'
+    | '/ecm-extractor/'
     | '/run-computation/'
     | '/run-computation/$id'
     | '/run-computation/$id/data-inputs'
@@ -681,6 +793,7 @@ export interface FileRouteTypes {
     | '/'
     | '/compare-data'
     | '/contribute-data'
+    | '/ecm-extractor'
     | '/explore-data/$id'
     | '/monitor-activities/calendar'
     | '/monitor-activities/detail'
@@ -695,6 +808,8 @@ export interface FileRouteTypes {
     | '/contribute-data/new'
     | '/contribute-data/portal'
     | '/contribute-data/review'
+    | '/ecm-extractor/results'
+    | '/ecm-extractor/staging'
     | '/run-computation/$id'
     | '/run-computation/$id/data-inputs'
     | '/run-computation/$id/results'
@@ -707,6 +822,8 @@ export interface FileRouteTypes {
     | '/compare-data/_layout'
     | '/contribute-data'
     | '/contribute-data/_layout'
+    | '/ecm-extractor'
+    | '/ecm-extractor/_layout'
     | '/explore-data/$id'
     | '/monitor-activities/calendar'
     | '/monitor-activities/detail'
@@ -722,8 +839,11 @@ export interface FileRouteTypes {
     | '/contribute-data/_layout/new'
     | '/contribute-data/_layout/portal'
     | '/contribute-data/_layout/review'
+    | '/ecm-extractor/_layout/results'
+    | '/ecm-extractor/_layout/staging'
     | '/compare-data/_layout/'
     | '/contribute-data/_layout/'
+    | '/ecm-extractor/_layout/'
     | '/run-computation/_layout/'
     | '/run-computation/_layout/$id'
     | '/run-computation/_layout/$id/_layout'
@@ -738,6 +858,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   CompareDataRoute: typeof CompareDataRouteWithChildren;
   ContributeDataRoute: typeof ContributeDataRouteWithChildren;
+  EcmExtractorRoute: typeof EcmExtractorRouteWithChildren;
   ExploreDataIdRoute: typeof ExploreDataIdRoute;
   MonitorActivitiesCalendarRoute: typeof MonitorActivitiesCalendarRoute;
   MonitorActivitiesDetailRoute: typeof MonitorActivitiesDetailRoute;
@@ -753,6 +874,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompareDataRoute: CompareDataRouteWithChildren,
   ContributeDataRoute: ContributeDataRouteWithChildren,
+  EcmExtractorRoute: EcmExtractorRouteWithChildren,
   ExploreDataIdRoute: ExploreDataIdRoute,
   MonitorActivitiesCalendarRoute: MonitorActivitiesCalendarRoute,
   MonitorActivitiesDetailRoute: MonitorActivitiesDetailRoute,
@@ -777,6 +899,7 @@ export const routeTree = rootRoute
         "/",
         "/compare-data",
         "/contribute-data",
+        "/ecm-extractor",
         "/explore-data/$id",
         "/monitor-activities/calendar",
         "/monitor-activities/detail",
@@ -820,6 +943,21 @@ export const routeTree = rootRoute
         "/contribute-data/_layout/portal",
         "/contribute-data/_layout/review",
         "/contribute-data/_layout/"
+      ]
+    },
+    "/ecm-extractor": {
+      "filePath": "ecm-extractor",
+      "children": [
+        "/ecm-extractor/_layout"
+      ]
+    },
+    "/ecm-extractor/_layout": {
+      "filePath": "ecm-extractor/_layout.tsx",
+      "parent": "/ecm-extractor",
+      "children": [
+        "/ecm-extractor/_layout/results",
+        "/ecm-extractor/_layout/staging",
+        "/ecm-extractor/_layout/"
       ]
     },
     "/explore-data/$id": {
@@ -880,6 +1018,14 @@ export const routeTree = rootRoute
       "filePath": "contribute-data/_layout/review.tsx",
       "parent": "/contribute-data/_layout"
     },
+    "/ecm-extractor/_layout/results": {
+      "filePath": "ecm-extractor/_layout/results.tsx",
+      "parent": "/ecm-extractor/_layout"
+    },
+    "/ecm-extractor/_layout/staging": {
+      "filePath": "ecm-extractor/_layout/staging.tsx",
+      "parent": "/ecm-extractor/_layout"
+    },
     "/compare-data/_layout/": {
       "filePath": "compare-data/_layout/index.tsx",
       "parent": "/compare-data/_layout"
@@ -887,6 +1033,10 @@ export const routeTree = rootRoute
     "/contribute-data/_layout/": {
       "filePath": "contribute-data/_layout/index.tsx",
       "parent": "/contribute-data/_layout"
+    },
+    "/ecm-extractor/_layout/": {
+      "filePath": "ecm-extractor/_layout/index.tsx",
+      "parent": "/ecm-extractor/_layout"
     },
     "/run-computation/_layout/": {
       "filePath": "run-computation/_layout/index.tsx",
