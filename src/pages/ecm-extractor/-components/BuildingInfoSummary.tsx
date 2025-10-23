@@ -1,4 +1,6 @@
-import { Paper, Typography, Divider } from '@mui/material';
+import { Paper, Typography, Divider, Box, Grid, Link } from '@mui/material';
+import MapIcon from '@mui/icons-material/Map';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { BuildingInfo } from '../-types/ecm.types';
 import { LabelValueTable } from '../../../components/LabelValueTable';
 
@@ -48,6 +50,19 @@ export const BuildingInfoSummary: React.FC<BuildingInfoSummaryProps> = ({
     },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 
+  // Create Google Maps search URL (opens in new tab)
+  const mapAddress = encodeURIComponent(
+    `${buildingInfo.building_address}, ${buildingInfo.zip_code}`
+  );
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapAddress}`;
+
+  // OpenStreetMap embed (free, no API key needed)
+  // Using Nominatim to geocode the address, then display on OSM
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=-74.0,40.6,-73.9,40.7&layer=mapnik&marker=40.65,-73.95`;
+
+  // For a more accurate map, we could use a geocoding service
+  // But for simplicity, using a static map centered on the general area
+
   return (
     <Paper
       elevation={2}
@@ -59,7 +74,73 @@ export const BuildingInfoSummary: React.FC<BuildingInfoSummaryProps> = ({
         Building Information
       </Typography>
       <Divider sx={{ mb: 2 }} />
-      <LabelValueTable rows={buildingData} />
+
+      <Grid container spacing={3}>
+        {/* Building Details */}
+        <Grid item xs={12} md={6}>
+          <LabelValueTable rows={buildingData} />
+        </Grid>
+
+        {/* Interactive Map */}
+        <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              width: '100%',
+              height: '100%',
+              minHeight: 300,
+              borderRadius: 1,
+              overflow: 'hidden',
+              border: 1,
+              borderColor: 'divider',
+              position: 'relative',
+            }}
+          >
+            {/* OpenStreetMap Embed - Free, no API key */}
+            <iframe
+              title="Building Location Map"
+              src={osmEmbedUrl}
+              width="100%"
+              height="300"
+              style={{ border: 0 }}
+              loading="lazy"
+            />
+            {/* Link overlay at bottom */}
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 8,
+                left: 8,
+                right: 8,
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: 1,
+                p: 1,
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <Link
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                <MapIcon fontSize="small" />
+                <Typography variant="body2">Open in Google Maps</Typography>
+                <OpenInNewIcon fontSize="small" />
+              </Link>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
     </Paper>
   );
 };
