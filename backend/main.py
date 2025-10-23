@@ -10,15 +10,18 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import traceback
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
 
 from ecm_extraction.pdf_parser import extract_markdown_with_images
 from ecm_extraction.extractor import extract_ecms_from_markdown
 from config import create_llm_client, get_llm_provider, get_config
+from database import get_db, init_db
+from db_models import PDF, Image, ECMExtraction
 
 # Load environment variables
 load_dotenv()

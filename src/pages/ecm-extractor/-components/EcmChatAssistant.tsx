@@ -12,7 +12,6 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ReactMarkdown from 'react-markdown';
 import { EcmData } from '../-types/ecm.types';
@@ -189,9 +188,10 @@ export const EcmChatAssistant: React.FC<EcmChatAssistantProps> = ({
               backgroundColor: 'primary.dark',
             },
             boxShadow: 2,
+            p: 1.5,
           }}
         >
-          <ChevronLeftIcon />
+          <SmartToyIcon fontSize="medium" />
         </IconButton>
       </Box>
     );

@@ -41,7 +41,7 @@ function ResultsPage() {
   const { state, dispatch } = useEcmExtractor();
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
-  const [chatOpen, setChatOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(400);
 
   const handleDownloadJson = () => {
