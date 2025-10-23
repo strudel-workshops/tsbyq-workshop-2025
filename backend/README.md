@@ -37,18 +37,43 @@ pip install -e .
 
 ### 3. Configure Environment Variables
 
-Copy the example environment file and add your CBorg API key:
+Copy the example environment file and add the API key(s) for the provider you plan to use:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set your API key:
+Edit `.env` and set the appropriate values, e.g. for CBorg:
 
 ```
 CBORG_API_KEY=your_actual_api_key_here
 CBORG_BASE_URL=https://api.cborg.lbl.gov
 ```
+
+For OpenRouter, set:
+
+```
+OPENROUTER_API_KEY=your_actual_api_key_here
+# Optional branding headers:
+OPENROUTER_SITE_URL=https://your-site.example
+OPENROUTER_SITE_NAME=Your Site Name
+```
+
+### 4. Configure LLM Provider (optional)
+
+The backend reads `config.yaml` to decide which LLM client to use for ECM extraction and the chat assistant.
+
+```yaml
+llm:
+  default_provider: cborg # or openrouter
+  extraction_provider: null # overrides per feature when set
+  chat_provider: null
+```
+
+- Set `default_provider` to `cborg` or `openrouter`.
+- Use `extraction_provider` / `chat_provider` if you want different providers per feature.
+- Provider-specific settings (base URL, model, optional headers) live under `llm.providers`.
+- Environment variables `LLM_PROVIDER_EXTRACTION` or `LLM_PROVIDER_CHAT` override the config file when present.
 
 ## Running the Server
 
@@ -193,6 +218,8 @@ backend/
 ├── main.py              # FastAPI application
 ├── pyproject.toml       # Python project config & dependencies
 ├── requirements.txt     # Legacy format (kept for compatibility)
+├── config.yaml          # LLM provider configuration (optional overrides)
+├── config.py            # Config loader / LLM client factory
 ├── start.sh             # Automated startup script
 ├── .env.example         # Environment template
 ├── .env                 # Your actual config (gitignored)
@@ -202,7 +229,7 @@ backend/
 └── ecm_extraction/     # Python package (editable install)
     ├── __init__.py
     ├── models.py        # Pydantic data models
-    ├── llm_client.py    # CBorg API client
+    ├── llm_clients.py   # LLM client helpers (CBorg/OpenRouter)
     ├── pdf_parser.py    # PDF text/image extraction
     └── extractor.py     # LLM-based ECM extraction
 ```
@@ -221,9 +248,10 @@ Don't forget to update the CORS settings in `main.py` and the frontend API calls
 
 ### Missing API Key
 
-Error: `CBorg API key not found`
+If the health check reports `api_key_configured: false`, verify that either:
 
-Solution: Make sure your `.env` file exists and contains `CBORG_API_KEY=your_key`
+- Your `config.yaml` supplies an `api_key` for the selected provider, or
+- The relevant environment variable is set (`CBORG_API_KEY` or `OPENROUTER_API_KEY`)
 
 ### Python Path Issues
 
@@ -236,7 +264,7 @@ The backend code is organized as:
 - `main.py` - FastAPI endpoints
 - `ecm_extraction/` - Python package with extraction logic (editable install)
   - `models.py` - Pydantic data models
-  - `llm_client.py` - CBorg API client
+  - `llm_clients.py` - LLM client helpers (CBorg/OpenRouter)
   - `pdf_parser.py` - PDF text/image extraction
   - `extractor.py` - LLM-based ECM extraction
 

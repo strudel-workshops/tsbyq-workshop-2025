@@ -1,0 +1,22 @@
+# ECM Extractor backend configuration
+
+llm:
+  # default_provider controls the fallback for any use-case (options: cborg, openrouter)
+  default_provider: openrouter
+
+  # Optional per-feature overrides
+  extraction_provider: null # use default when null
+  chat_provider: null # use default when null
+
+  providers:
+    cborg:
+      # base_url and default_model are optional overrides; defaults set in code
+      base_url: https://api.cborg.lbl.gov
+      default_model: anthropic/claude-haiku:latest
+
+    openrouter:
+      base_url: https://openrouter.ai/api/v1
+      default_model: anthropic/claude-sonnet-4.5
+      # Optional headers (see https://openrouter.ai/docs)
+      referer: null
+      site_name: null

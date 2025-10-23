@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from ecm_extraction.pdf_parser import extract_markdown_with_images
 from ecm_extraction.extractor import extract_ecms_from_markdown
-from ecm_extraction.llm_client import CBorgLLMClient
+from config import create_llm_client, get_llm_provider, get_config
 
 # Load environment variables
 load_dotenv()
@@ -209,7 +209,7 @@ async def extract_ecm_endpoint(request: ExtractECMRequest):
 
     try:
         # Initialize LLM client
-        llm_client = CBorgLLMClient()
+        llm_client = create_llm_client("extraction")
 
         # Extract ECMs
         records = extract_ecms_from_markdown(
@@ -428,7 +428,7 @@ async def delete_pdf(pdf_id: str):
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    """Chat with AI assistant about ECM data using CBorg LLM.
+    """Chat with AI assistant about ECM data using the configured LLM provider.
 
     Args:
         request: Chat request with messages and ECM data context
@@ -441,7 +441,7 @@ async def chat_endpoint(request: ChatRequest):
     """
     try:
         # Initialize LLM client
-        llm_client = CBorgLLMClient()
+        llm_client = create_llm_client("chat")
 
         # Build system prompt with ECM data context
         system_prompt = f"""You are an expert energy analyst assistant helping users understand Energy Conservation Measure (ECM) data.
@@ -462,7 +462,7 @@ Be concise but informative. Use specific numbers from the data when relevant."""
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(request.messages)
 
-        # Call CBorg LLM
+        # Call configured LLM provider
         response = llm_client.chat_completion(
             messages=messages,
             temperature=request.temperature,
@@ -489,12 +489,24 @@ Be concise but informative. Use specific numbers from the data when relevant."""
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    # Check if API key is configured
-    api_key = os.environ.get("CBORG_API_KEY")
+    provider = get_llm_provider()
+    config = get_config().get("llm", {})
+    provider_config = config.get("providers", {}).get(provider, {})
+
+    api_key = provider_config.get("api_key")
+    if not api_key:
+        env_var_map = {
+            "cborg": "CBORG_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
+        }
+        env_var = env_var_map.get(provider)
+        api_key = os.environ.get(env_var) if env_var else None
+
     has_api_key = bool(api_key)
 
     return {
         "status": "healthy",
+        "llm_provider": provider,
         "api_key_configured": has_api_key,
         "upload_dir_exists": UPLOAD_DIR.exists(),
     }
