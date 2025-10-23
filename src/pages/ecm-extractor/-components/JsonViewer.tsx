@@ -1,7 +1,5 @@
 import { Button, Paper, Stack, Typography, Box } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { useState } from 'react';
 
 interface JsonViewerProps {
@@ -9,7 +7,7 @@ interface JsonViewerProps {
 }
 
 /**
- * JSON viewer component with syntax highlighting and copy functionality
+ * JSON viewer component with copy functionality
  */
 export const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
   const [copied, setCopied] = useState(false);
@@ -47,22 +45,21 @@ export const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
           </Button>
         </Stack>
         <Box
+          component="pre"
           sx={{
             maxHeight: '600px',
             overflow: 'auto',
             borderRadius: 1,
+            backgroundColor: '#1e1e1e',
+            color: '#d4d4d4',
+            padding: 2,
+            margin: 0,
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
           }}
         >
-          <SyntaxHighlighter
-            language="json"
-            style={vscDarkPlus}
-            customStyle={{
-              margin: 0,
-              borderRadius: '4px',
-            }}
-          >
-            {jsonString}
-          </SyntaxHighlighter>
+          <code>{jsonString}</code>
         </Box>
       </Stack>
     </Paper>

@@ -1,14 +1,12 @@
 import { Box, Paper } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
 interface MarkdownPreviewProps {
   markdown: string;
 }
 
 /**
- * Markdown preview component with syntax highlighting for code blocks
+ * Markdown preview component with basic code block styling
  */
 export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   markdown,
@@ -21,39 +19,47 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
         padding: 3,
       }}
     >
-      <Box>
-        <ReactMarkdown
-          components={{
-            code({ node, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '');
-              const inline = !match;
-              return !inline && match ? (
-                <SyntaxHighlighter
-                  style={vscDarkPlus}
-                  language={match[1]}
-                  PreTag="div"
-                >
-                  {String(children).replace(/\n$/, '')}
-                </SyntaxHighlighter>
-              ) : (
-                <code
-                  className={className}
-                  style={{
-                    backgroundColor: '#f5f5f5',
-                    padding: '2px 6px',
-                    borderRadius: '3px',
-                    fontFamily: 'monospace',
-                  }}
-                  {...props}
-                >
-                  {children}
-                </code>
-              );
+      <Box
+        sx={{
+          '& h1': { fontSize: '2em', fontWeight: 'bold', marginBottom: 2 },
+          '& h2': {
+            fontSize: '1.5em',
+            fontWeight: 'bold',
+            marginBottom: 1.5,
+            marginTop: 2,
+          },
+          '& h3': {
+            fontSize: '1.25em',
+            fontWeight: 'bold',
+            marginBottom: 1,
+            marginTop: 1.5,
+          },
+          '& p': { marginBottom: 1 },
+          '& ul, & ol': { marginLeft: 3, marginBottom: 1 },
+          '& li': { marginBottom: 0.5 },
+          '& code': {
+            backgroundColor: '#f5f5f5',
+            padding: '2px 6px',
+            borderRadius: '3px',
+            fontFamily: 'monospace',
+            fontSize: '0.9em',
+          },
+          '& pre': {
+            backgroundColor: '#1e1e1e',
+            color: '#d4d4d4',
+            padding: 2,
+            borderRadius: 1,
+            overflow: 'auto',
+            marginBottom: 2,
+            '& code': {
+              backgroundColor: 'transparent',
+              padding: 0,
+              color: 'inherit',
             },
-          }}
-        >
-          {markdown}
-        </ReactMarkdown>
+          },
+        }}
+      >
+        <ReactMarkdown>{markdown}</ReactMarkdown>
       </Box>
     </Paper>
   );
