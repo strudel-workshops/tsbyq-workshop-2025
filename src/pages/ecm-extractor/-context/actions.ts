@@ -15,7 +15,7 @@ export interface EcmExtractorState {
   extractedMarkdown: string;
   editedMarkdown: string;
   images: ImageData[];
-  ecmResults: Record<string, unknown> | null;
+  ecmResults: unknown;
   isLoading: boolean;
   error: string | null;
 }
@@ -29,7 +29,7 @@ export type EcmExtractorAction =
       type: 'SET_MARKDOWN_AND_IMAGES';
       payload: { markdown: string; images: ImageData[] };
     }
-  | { type: 'SET_ECM_RESULTS'; payload: Record<string, unknown> }
+  | { type: 'SET_ECM_RESULTS'; payload: unknown }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' }
@@ -131,9 +131,7 @@ export const setEditedMarkdown = (markdown: string): EcmExtractorAction => ({
   payload: markdown,
 });
 
-export const setEcmResults = (
-  results: Record<string, unknown>
-): EcmExtractorAction => ({
+export const setEcmResults = (results: unknown): EcmExtractorAction => ({
   type: 'SET_ECM_RESULTS',
   payload: results,
 });

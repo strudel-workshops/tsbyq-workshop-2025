@@ -3,7 +3,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useState } from 'react';
 
 interface JsonViewerProps {
-  data: Record<string, unknown>;
+  data: unknown;
 }
 
 /**
