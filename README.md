@@ -7,6 +7,7 @@ This library provides a suite of templates to implement UIs for various differen
 [Browse the full docs](https://strudel.science/strudel-kit/docs/)
 
 ## What's included?
+
 - [**React**](https://react.dev/): A component-based JavaScript library for building UIs.
 - [**TypeScript**](https://www.typescriptlang.org/): A typed superset of JavaScript that compiles to plain JavaScript.
 - [**Vite**](https://vite.dev/): A fast, opinionated frontend build tool.
@@ -16,13 +17,13 @@ This library provides a suite of templates to implement UIs for various differen
 - [**Prettier**](https://prettier.io/): An opinionated code formatter.
 - [**Husky**](https://typicode.github.io/husky/): Runs a pre-commit hook to lint and style staged code.
 - [**Cypress**](https://www.cypress.io/): End-to-end tests for built-in templates.
-- [**Task Flow Templates**](https://strudel.science/design-system/task-flows/overview/): Six template flows based on common patterns. 
+- [**Task Flow Templates**](https://strudel.science/design-system/task-flows/overview/): Six template flows based on common patterns.
 
 ![Home page](images/home.png)
 
 ![Run Computation results page](images/run-computation-results.png)
 
-## Getting Started
+## Getting Started ------
 
 ### Option 1: Use this template
 
@@ -33,6 +34,7 @@ Clone the strudel-kit repository from your new repo.
 ### Option 2: degit
 
 Generate a new project from strudel-kit using [degit](https://github.com/Rich-Harris/degit):
+
 ```
 npx degit strudel-science/strudel-kit my-app
 ```
@@ -65,7 +67,7 @@ Begin modifying the templates in `src/pages`.
 
 STRUDEL Kit welcomes contributions of all kinds! Learn how to submit suggestions and changes in [CONTRIBUTING.md](https://github.com/strudel-science/strudel-kit/blob/main/CONTRIBUTING.md).
 
-## License 
+## License
 
 This software is licensed through the [Lawrence Berkeley National Lab](https://www.lbl.gov/) and can be used, modified, and shared at absolutely no cost. [Read the full license](https://github.com/strudel-science/strudel-kit/blob/main/LICENSE).
 
