@@ -50,18 +50,15 @@ export const BuildingInfoSummary: React.FC<BuildingInfoSummaryProps> = ({
     },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 
-  // Create Google Maps search URL (opens in new tab)
-  const mapAddress = encodeURIComponent(
-    `${buildingInfo.building_address}, ${buildingInfo.zip_code}`
-  );
+  // Create address string for maps
+  const fullAddress = `${buildingInfo.building_address}, ${buildingInfo.zip_code}`;
+  const mapAddress = encodeURIComponent(fullAddress);
+
+  // Google Maps search URL (opens in new tab)
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapAddress}`;
 
-  // OpenStreetMap embed (free, no API key needed)
-  // Using Nominatim to geocode the address, then display on OSM
-  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=-74.0,40.6,-73.9,40.7&layer=mapnik&marker=40.65,-73.95`;
-
-  // For a more accurate map, we could use a geocoding service
-  // But for simplicity, using a static map centered on the general area
+  // Google Maps embed URL (works without API key for basic embedding)
+  const googleMapsEmbedUrl = `https://www.google.com/maps?q=${mapAddress}&output=embed`;
 
   return (
     <Paper
@@ -95,14 +92,15 @@ export const BuildingInfoSummary: React.FC<BuildingInfoSummaryProps> = ({
               position: 'relative',
             }}
           >
-            {/* OpenStreetMap Embed - Free, no API key */}
+            {/* Google Maps Embed - Uses address directly, no geocoding needed */}
             <iframe
               title="Building Location Map"
-              src={osmEmbedUrl}
+              src={googleMapsEmbedUrl}
               width="100%"
               height="300"
               style={{ border: 0 }}
               loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
             />
             {/* Link overlay at bottom */}
             <Box
