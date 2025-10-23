@@ -41,6 +41,8 @@ function ResultsPage() {
   const { state, dispatch } = useEcmExtractor();
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [chatWidth, setChatWidth] = useState(400);
 
   const handleDownloadJson = () => {
     if (state.ecmResults) {
@@ -70,6 +72,14 @@ function ResultsPage() {
     setTabValue(newValue);
   };
 
+  const handleChatToggle = () => {
+    setChatOpen((prev) => !prev);
+  };
+
+  const handleChatWidthChange = (newWidth: number) => {
+    setChatWidth(newWidth);
+  };
+
   // Navigate away if no results (wrapped in useEffect to avoid render-time navigation)
   useEffect(() => {
     if (!state.ecmResults) {
@@ -93,10 +103,23 @@ function ResultsPage() {
 
   return (
     <Box
-      sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden' }}
+      sx={{
+        display: 'flex',
+        height: 'calc(100vh - 64px)',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
     >
       {/* Main Content Area */}
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          p: 3,
+          mr: chatOpen ? `${chatWidth}px` : 0,
+          transition: 'margin-right 0.3s',
+        }}
+      >
         <Stack spacing={3}>
           {/* Header */}
           <Paper
@@ -194,15 +217,20 @@ function ResultsPage() {
       {/* Chat Assistant Side Panel */}
       <Box
         sx={{
-          width: 400,
-          borderLeft: 1,
-          borderColor: 'divider',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: 'background.paper',
+          position: 'fixed',
+          right: 0,
+          top: '64px',
+          height: 'calc(100vh - 64px)',
+          zIndex: 1000,
         }}
       >
-        <EcmChatAssistant ecmData={ecmDataArray} />
+        <EcmChatAssistant
+          ecmData={ecmDataArray}
+          isOpen={chatOpen}
+          onToggle={handleChatToggle}
+          width={chatWidth}
+          onWidthChange={handleChatWidthChange}
+        />
       </Box>
     </Box>
   );
