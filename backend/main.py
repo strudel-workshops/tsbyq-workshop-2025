@@ -87,7 +87,9 @@ class PdfMetadata(BaseModel):
     filename: str
     upload_date: str
     image_count: int
+    file_size: int
     has_ecm_data: bool
+    ecm_count: Optional[int] = None
 
 
 class PdfListResponse(BaseModel):
@@ -159,7 +161,9 @@ async def extract_markdown_endpoint(file: UploadFile = File(...)):
             "filename": file.filename,
             "upload_date": datetime.now().isoformat(),
             "image_count": len(result.images),
+            "file_size": len(content),  # Size in bytes
             "has_ecm_data": False,
+            "ecm_count": None,  # Will be set after ECM extraction
         }
         metadata_path = output_dir / "metadata.json"
         metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
@@ -233,6 +237,7 @@ async def extract_ecm_endpoint(request: ExtractECMRequest):
                 if metadata_path.exists():
                     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
                     metadata["has_ecm_data"] = True
+                    metadata["ecm_count"] = len(record_dicts)
                     metadata["ecm_extraction_date"] = datetime.now().isoformat()
                     metadata_path.write_text(
                         json.dumps(metadata, indent=2), 

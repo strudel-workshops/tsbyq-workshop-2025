@@ -5,18 +5,21 @@ import {
   Typography,
   Button,
   Box,
-  Chip,
+  Stack,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
+  Chip,
 } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageIcon from '@mui/icons-material/Image';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import StorageIcon from '@mui/icons-material/Storage';
 import { useState } from 'react';
 import { PdfMetadata } from '../-context/actions';
 
@@ -51,72 +54,101 @@ export const PdfListCard: React.FC<PdfListCardProps> = ({
     return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
+      year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
     });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    } else if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    } else {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
   };
 
   return (
     <>
       <Card
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
           '&:hover': {
             boxShadow: 4,
           },
         }}
       >
-        <CardContent sx={{ flexGrow: 1 }}>
-          <Box display="flex" alignItems="flex-start" gap={1} mb={1}>
-            <DescriptionIcon color="primary" />
-            <Box flexGrow={1}>
-              <Typography variant="h6" component="h3" gutterBottom>
+        <CardContent>
+          <Stack direction="row" spacing={2} alignItems="center">
+            {/* Icon */}
+            <DescriptionIcon color="primary" sx={{ fontSize: 40 }} />
+
+            {/* Main content */}
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant="h6" component="h3" noWrap sx={{ mb: 1 }}>
                 {pdf.filename}
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Uploaded: {formatDate(pdf.upload_date)}
-              </Typography>
+
+              {/* Stats row */}
+              <Stack
+                direction="row"
+                spacing={2}
+                flexWrap="wrap"
+                sx={{ gap: 1 }}
+              >
+                <Chip
+                  icon={<AccessTimeIcon />}
+                  label={formatDate(pdf.upload_date)}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<StorageIcon />}
+                  label={formatFileSize(pdf.file_size)}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<ImageIcon />}
+                  label={`${pdf.image_count} ${pdf.image_count === 1 ? 'image' : 'images'}`}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<AssessmentIcon />}
+                  label={
+                    pdf.ecm_count !== null
+                      ? `${pdf.ecm_count} ${pdf.ecm_count === 1 ? 'ECM' : 'ECMs'}`
+                      : 'ECMs: N/A'
+                  }
+                  size="small"
+                  variant="outlined"
+                  color={pdf.ecm_count !== null ? 'success' : 'default'}
+                />
+              </Stack>
             </Box>
-          </Box>
 
-          <Box display="flex" gap={1} flexWrap="wrap">
-            <Chip
-              icon={<ImageIcon />}
-              label={`${pdf.image_count} ${pdf.image_count === 1 ? 'image' : 'images'}`}
-              size="small"
-              variant="outlined"
-            />
-            {pdf.has_ecm_data && (
-              <Chip
-                icon={<CheckCircleIcon />}
-                label="ECM Data"
+            {/* Action buttons */}
+            <CardActions sx={{ p: 0 }}>
+              <Button
                 size="small"
-                color="success"
-                variant="outlined"
-              />
-            )}
-          </Box>
+                startIcon={<VisibilityIcon />}
+                onClick={() => onView(pdf.id)}
+              >
+                View/Edit
+              </Button>
+              <Button
+                size="small"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={handleDeleteClick}
+              >
+                Delete
+              </Button>
+            </CardActions>
+          </Stack>
         </CardContent>
-
-        <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
-          <Button
-            size="small"
-            startIcon={<VisibilityIcon />}
-            onClick={() => onView(pdf.id)}
-          >
-            View/Edit
-          </Button>
-          <Button
-            size="small"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={handleDeleteClick}
-          >
-            Delete
-          </Button>
-        </CardActions>
       </Card>
 
       {/* Delete Confirmation Dialog */}

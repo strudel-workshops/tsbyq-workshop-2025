@@ -17,7 +17,9 @@ export interface PdfMetadata {
   filename: string;
   upload_date: string;
   image_count: number;
+  file_size: number; // Size in bytes
   has_ecm_data: boolean;
+  ecm_count: number | null; // Number of ECMs, null before extraction
 }
 
 export interface EcmExtractorState {
