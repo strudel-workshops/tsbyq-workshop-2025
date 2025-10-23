@@ -1,12 +1,12 @@
-"""ECM extraction using CBorg LLM - Simplified workshop version."""
+"""ECM extraction orchestrated through configurable LLM clients."""
 
 from __future__ import annotations
 import json
-from typing import List
+from typing import List, Optional
 from pydantic import ValidationError
 
 from .models import ECMRecord
-from .llm_client import CBorgLLMClient
+from .llm_clients import LLMClientProtocol
 
 
 def create_extraction_prompt(markdown: str) -> str:
@@ -67,14 +67,14 @@ RESPONSE (Array of complete ECMRecord objects):"""
 
 def extract_ecms_from_markdown(
     markdown: str,
-    client: CBorgLLMClient,
+    client: LLMClientProtocol,
     model: str | None = None,
 ) -> List[ECMRecord]:
-    """Extract ECM records from markdown using CBorg LLM.
+    """Extract ECM records from markdown using the configured LLM.
 
     Args:
         markdown: Document content in markdown format
-        client: Initialized CBorg LLM client
+        client: Initialized LLM client implementing workshop protocol
         model: Optional model override
 
     Returns:
@@ -98,7 +98,11 @@ def extract_ecms_from_markdown(
 
     try:
         # Call LLM
-        print("Calling CBorg LLM for ECM extraction...")
+        provider_name: Optional[str] = getattr(client, "provider_name", None)
+        if provider_name:
+            print(f"Calling LLM provider [{provider_name}] for ECM extraction...")
+        else:
+            print("Calling LLM provider for ECM extraction...")
         response = client.extract_with_prompt(
             system_prompt=system_msg,
             user_content=prompt,

@@ -33,7 +33,7 @@ interface EcmChatAssistantProps {
 
 /**
  * Chat Assistant Component
- * Provides an AI-powered chat interface for querying ECM data using CBorg backend
+ * Provides an AI-powered chat interface for querying ECM data via the backend LLM provider
  * Features: expandable, resizable, markdown rendering
  */
 export const EcmChatAssistant: React.FC<EcmChatAssistantProps> = ({
