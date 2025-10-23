@@ -7,6 +7,8 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Grid,
+  Divider,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -17,7 +19,11 @@ import {
   setMarkdownAndImages,
   setLoading,
   setError,
+  setUploadedPdfsList,
+  loadPdfData,
+  deletePdfFromList,
 } from '../-context/actions';
+import { PdfListCard } from '../-components/PdfListCard';
 
 export const Route = createFileRoute('/ecm-extractor/_layout/')({
   component: UploadPage,
@@ -32,6 +38,24 @@ function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const shouldNavigate = useRef(false);
+
+  // Fetch list of uploaded PDFs on mount
+  useEffect(() => {
+    const fetchPdfs = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/pdfs');
+        if (response.ok) {
+          const data = await response.json();
+          dispatch(setUploadedPdfsList(data.pdfs));
+        }
+      } catch {
+        // Silently fail if backend is not available
+        // PDF list will be empty until backend is running
+      }
+    };
+
+    fetchPdfs();
+  }, [dispatch]);
 
   // Navigate to staging page once markdown is loaded
   useEffect(() => {
@@ -106,8 +130,14 @@ function UploadPage() {
       const data = await response.json();
 
       // Update state with markdown and images
-      // Update state with markdown and images
-      dispatch(setMarkdownAndImages(data.markdown, data.images));
+      dispatch(setMarkdownAndImages(data.markdown, data.images, data.pdf_id));
+
+      // Refresh PDF list
+      const listResponse = await fetch('http://localhost:8000/api/pdfs');
+      if (listResponse.ok) {
+        const listData = await listResponse.json();
+        dispatch(setUploadedPdfsList(listData.pdfs));
+      }
 
       // Set flag to navigate once state is updated
       shouldNavigate.current = true;
@@ -120,6 +150,62 @@ function UploadPage() {
       );
     } finally {
       dispatch(setLoading(false));
+    }
+  };
+
+  const handleViewPdf = async (pdfId: string) => {
+    dispatch(setLoading(true));
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/pdfs/${encodeURIComponent(pdfId)}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to load PDF data');
+      }
+
+      const data = await response.json();
+
+      // Load PDF data into state
+      dispatch(
+        loadPdfData(data.id, data.markdown, data.images, data.ecm_results)
+      );
+
+      // Navigate to staging or results depending on whether ECM data exists
+      if (data.ecm_results) {
+        navigate({ to: '/ecm-extractor/results' });
+      } else {
+        navigate({ to: '/ecm-extractor/staging' });
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to load PDF';
+      dispatch(setError(errorMessage));
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  const handleDeletePdf = async (pdfId: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/pdfs/${encodeURIComponent(pdfId)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete PDF');
+      }
+
+      // Remove from state
+      dispatch(deletePdfFromList(pdfId));
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to delete PDF';
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -229,6 +315,27 @@ function UploadPage() {
           </Box>
         </Stack>
       </Paper>
+
+      {/* Previously Uploaded PDFs */}
+      {state.uploadedPdfs.length > 0 && (
+        <Box mt={4}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Previously Uploaded PDFs ({state.uploadedPdfs.length})
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          <Grid container spacing={2}>
+            {state.uploadedPdfs.map((pdf) => (
+              <Grid item xs={12} sm={6} md={4} key={pdf.id}>
+                <PdfListCard
+                  pdf={pdf}
+                  onView={handleViewPdf}
+                  onDelete={handleDeletePdf}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
     </Container>
   );
 }

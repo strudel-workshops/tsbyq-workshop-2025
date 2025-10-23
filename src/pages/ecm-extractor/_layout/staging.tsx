@@ -49,6 +49,7 @@ function StagingPage() {
         },
         body: JSON.stringify({
           markdown: state.editedMarkdown,
+          pdf_id: state.currentPdfId,
         }),
       });
 

@@ -3,8 +3,11 @@
 from __future__ import annotations
 import os
 import sys
+import json
+import shutil
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 import traceback
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -48,6 +51,7 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 class ExtractECMRequest(BaseModel):
     """Request model for ECM extraction."""
     markdown: str
+    pdf_id: Optional[str] = None
 
 
 class MarkdownExtractionResponse(BaseModel):
@@ -55,12 +59,37 @@ class MarkdownExtractionResponse(BaseModel):
     markdown: str
     images: List[Dict[str, Any]]
     output_dir: str
+    pdf_id: str
 
 
 class ECMExtractionResponse(BaseModel):
     """Response model for ECM extraction."""
     records: List[Dict[str, Any]]
     record_count: int
+
+
+class PdfMetadata(BaseModel):
+    """Metadata for an uploaded PDF."""
+    id: str
+    filename: str
+    upload_date: str
+    image_count: int
+    has_ecm_data: bool
+
+
+class PdfListResponse(BaseModel):
+    """Response model for PDF list."""
+    pdfs: List[PdfMetadata]
+
+
+class PdfDetailResponse(BaseModel):
+    """Response model for PDF details."""
+    id: str
+    filename: str
+    markdown: str
+    images: List[Dict[str, Any]]
+    ecm_results: Optional[List[Dict[str, Any]]] = None
+    upload_date: str
 
 
 @app.get("/")
@@ -109,10 +138,24 @@ async def extract_markdown_endpoint(file: UploadFile = File(...)):
             base_url="http://localhost:8000"
         )
 
+        # Create metadata file
+        output_dir = Path(result.output_dir)
+        pdf_id = output_dir.name
+        metadata = {
+            "id": pdf_id,
+            "filename": file.filename,
+            "upload_date": datetime.now().isoformat(),
+            "image_count": len(result.images),
+            "has_ecm_data": False,
+        }
+        metadata_path = output_dir / "metadata.json"
+        metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
         return MarkdownExtractionResponse(
             markdown=result.markdown,
             images=result.images,
             output_dir=result.output_dir,
+            pdf_id=pdf_id,
         )
 
     except Exception as e:
@@ -133,7 +176,7 @@ async def extract_ecm_endpoint(request: ExtractECMRequest):
     """Extract ECM records from markdown using LLM.
 
     Args:
-        request: Request containing markdown text
+        request: Request containing markdown text and optional pdf_id
 
     Returns:
         List of extracted ECM records
@@ -160,6 +203,28 @@ async def extract_ecm_endpoint(request: ExtractECMRequest):
         # Convert to dictionaries
         record_dicts = [record.model_dump() for record in records]
 
+        # Save ECM results if pdf_id is provided
+        if request.pdf_id:
+            pdf_dir = UPLOAD_DIR / request.pdf_id
+            if pdf_dir.exists():
+                # Save ECM results
+                ecm_results_path = pdf_dir / "ecm_results.json"
+                ecm_results_path.write_text(
+                    json.dumps(record_dicts, indent=2), 
+                    encoding="utf-8"
+                )
+                
+                # Update metadata
+                metadata_path = pdf_dir / "metadata.json"
+                if metadata_path.exists():
+                    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                    metadata["has_ecm_data"] = True
+                    metadata["ecm_extraction_date"] = datetime.now().isoformat()
+                    metadata_path.write_text(
+                        json.dumps(metadata, indent=2), 
+                        encoding="utf-8"
+                    )
+
         return ECMExtractionResponse(
             records=record_dicts,
             record_count=len(record_dicts),
@@ -177,6 +242,168 @@ async def extract_ecm_endpoint(request: ExtractECMRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to extract ECM data: {str(e)}"
+        ) from e
+
+
+@app.get("/api/pdfs", response_model=PdfListResponse)
+async def list_pdfs():
+    """List all uploaded PDFs with metadata.
+
+    Returns:
+        List of PDF metadata sorted by upload date (most recent first)
+    """
+    try:
+        pdfs = []
+        
+        # Scan uploads directory for PDF folders
+        for item in UPLOAD_DIR.iterdir():
+            if item.is_dir() and item.name != ".gitkeep":
+                metadata_path = item / "metadata.json"
+                if metadata_path.exists():
+                    try:
+                        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                        pdfs.append(PdfMetadata(**metadata))
+                    except Exception as e:
+                        print(f"Warning: Failed to load metadata for {item.name}: {e}")
+                        continue
+        
+        # Sort by upload date (most recent first)
+        pdfs.sort(key=lambda x: x.upload_date, reverse=True)
+        
+        return PdfListResponse(pdfs=pdfs)
+    
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list PDFs: {str(e)}"
+        ) from e
+
+
+@app.get("/api/pdfs/{pdf_id}", response_model=PdfDetailResponse)
+async def get_pdf_details(pdf_id: str):
+    """Get details for a specific PDF.
+
+    Args:
+        pdf_id: ID of the PDF (folder name)
+
+    Returns:
+        PDF details including markdown, images, and ECM results if available
+
+    Raises:
+        HTTPException: If PDF not found or failed to load
+    """
+    try:
+        pdf_dir = UPLOAD_DIR / pdf_id
+        
+        if not pdf_dir.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"PDF not found: {pdf_id}"
+            )
+        
+        # Load metadata
+        metadata_path = pdf_dir / "metadata.json"
+        if not metadata_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Metadata not found for PDF: {pdf_id}"
+            )
+        
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        
+        # Load markdown
+        markdown_path = pdf_dir / "document.md"
+        markdown = markdown_path.read_text(encoding="utf-8") if markdown_path.exists() else ""
+        
+        # Load images metadata (reconstruct from images directory)
+        images = []
+        images_dir = pdf_dir / "images"
+        if images_dir.exists():
+            for img_file in sorted(images_dir.iterdir()):
+                if img_file.is_file():
+                    # Parse filename: img_1_0.png -> page=1, idx=0
+                    parts = img_file.stem.split("_")
+                    if len(parts) >= 3 and parts[0] == "img":
+                        page = int(parts[1])
+                        idx = int(parts[2])
+                        ext = img_file.suffix[1:]  # Remove leading dot
+                        
+                        from urllib.parse import quote
+                        relative_path = f"{quote(pdf_id)}/images/{quote(img_file.name)}"
+                        image_url = f"http://localhost:8000/uploads/{relative_path}"
+                        
+                        images.append({
+                            "id": img_file.stem,
+                            "page": page,
+                            "format": ext,
+                            "filename": img_file.name,
+                            "url": image_url,
+                            "path": str(img_file),
+                        })
+        
+        # Load ECM results if available
+        ecm_results = None
+        ecm_results_path = pdf_dir / "ecm_results.json"
+        if ecm_results_path.exists():
+            ecm_results = json.loads(ecm_results_path.read_text(encoding="utf-8"))
+        
+        return PdfDetailResponse(
+            id=metadata["id"],
+            filename=metadata["filename"],
+            markdown=markdown,
+            images=images,
+            ecm_results=ecm_results,
+            upload_date=metadata["upload_date"],
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load PDF details: {str(e)}"
+        ) from e
+
+
+@app.delete("/api/pdfs/{pdf_id}")
+async def delete_pdf(pdf_id: str):
+    """Delete a PDF and all its associated files.
+
+    Args:
+        pdf_id: ID of the PDF (folder name)
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: If PDF not found or failed to delete
+    """
+    try:
+        pdf_dir = UPLOAD_DIR / pdf_id
+        
+        if not pdf_dir.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"PDF not found: {pdf_id}"
+            )
+        
+        # Delete the entire directory
+        shutil.rmtree(pdf_dir)
+        
+        return {
+            "success": True,
+            "message": f"PDF {pdf_id} deleted successfully"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete PDF: {str(e)}"
         ) from e
 
 
