@@ -1,12 +1,13 @@
 import { Box, Paper } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
-import { useMemo } from 'react';
 
 interface ImageData {
   id: string;
   page: number;
   format: string;
-  data: string;
+  filename: string;
+  url: string;
+  path: string;
 }
 
 interface MarkdownPreviewProps {
@@ -15,32 +16,12 @@ interface MarkdownPreviewProps {
 }
 
 /**
- * Markdown preview component with image replacement and styling
+ * Markdown preview component with styling
+ * Images are now embedded directly in markdown with full URLs
  */
 export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   markdown,
-  images = [],
 }) => {
-  // Replace image IDs with actual base64 data URIs
-  const processedMarkdown = useMemo(() => {
-    let processed = markdown;
-
-    // Create a map of image IDs to data URIs
-    const imageMap = new Map<string, string>();
-    images.forEach((img) => {
-      imageMap.set(img.id, img.data);
-    });
-
-    // Replace image references: ![alt](img_id) -> ![alt](data:image/...)
-    imageMap.forEach((dataUri, imgId) => {
-      // Match markdown image syntax with the image ID
-      const regex = new RegExp(`!\\[([^\\]]*)\\]\\(${imgId}\\)`, 'g');
-      processed = processed.replace(regex, `![$1](${dataUri})`);
-    });
-
-    return processed;
-  }, [markdown, images]);
-
   return (
     <Paper
       sx={{
@@ -97,7 +78,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
           },
         }}
       >
-        <ReactMarkdown>{processedMarkdown}</ReactMarkdown>
+        <ReactMarkdown>{markdown}</ReactMarkdown>
       </Box>
     </Paper>
   );

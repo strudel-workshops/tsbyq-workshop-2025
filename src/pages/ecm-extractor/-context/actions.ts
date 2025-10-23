@@ -6,7 +6,10 @@ export interface ImageData {
   id: string;
   page: number;
   format: string;
-  data: string; // base64 data URI
+  filename: string;
+  url: string;
+  path: string;
+  data?: string; // base64 data URI (optional for backward compatibility)
 }
 
 export interface EcmExtractorState {

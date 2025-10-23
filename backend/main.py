@@ -9,6 +9,7 @@ import traceback
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -39,6 +40,9 @@ app.add_middleware(
 UPLOAD_DIR = Path(__file__).parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+# Mount static files for serving uploaded images and markdown
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 
 # Request/Response models
 class ExtractECMRequest(BaseModel):
@@ -50,6 +54,7 @@ class MarkdownExtractionResponse(BaseModel):
     """Response model for markdown extraction."""
     markdown: str
     images: List[Dict[str, Any]]
+    output_dir: str
 
 
 class ECMExtractionResponse(BaseModel):
@@ -76,7 +81,7 @@ async def extract_markdown_endpoint(file: UploadFile = File(...)):
         file: Uploaded PDF file
 
     Returns:
-        Markdown text and base64-encoded images
+        Markdown text, image metadata with URLs, and output directory path
 
     Raises:
         HTTPException: If file processing fails
@@ -96,12 +101,18 @@ async def extract_markdown_endpoint(file: UploadFile = File(...)):
             content = await file.read()
             f.write(content)
 
-        # Extract markdown and images
-        result = extract_markdown_with_images(temp_path)
+        # Extract markdown and images, saving to organized folder
+        # This creates: uploads/{pdf_name}/document.md and uploads/{pdf_name}/images/*.png
+        result = extract_markdown_with_images(
+            pdf_path=temp_path,
+            output_dir=None,  # Auto-generate based on PDF filename
+            base_url="http://localhost:8000"
+        )
 
         return MarkdownExtractionResponse(
             markdown=result.markdown,
             images=result.images,
+            output_dir=result.output_dir,
         )
 
     except Exception as e:
@@ -112,7 +123,7 @@ async def extract_markdown_endpoint(file: UploadFile = File(...)):
         ) from e
 
     finally:
-        # Clean up temporary file
+        # Clean up temporary PDF file (but keep the extracted folder)
         if temp_path.exists():
             temp_path.unlink()
 
