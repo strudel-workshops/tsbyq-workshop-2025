@@ -105,79 +105,132 @@ class SubmissionMetadata(BaseModel):
 
 
 class ECMRecord(BaseModel):
-    """Top-level record combining building, audit, and ECM data."""
+    """Top-level record combining building, audit, and ECM data.
 
-    building_snapshot: Optional[BuildingSnapshot] = None
-    audit_info: Optional[AuditInfo] = None
-    ecm_detail: EcmDetail
-    submission_metadata: Optional[SubmissionMetadata] = None
+    Field names match the original ecm_cost_db schema for compatibility.
+    """
+
+    submission: Optional[SubmissionMetadata] = None
+    building: Optional[BuildingSnapshot] = None
+    ecm: EcmDetail
+    audit: Optional[AuditInfo] = None
 
     def to_flat_dict(self) -> dict:
-        """Flatten nested structure for database storage."""
+        """Flatten nested structure for frontend compatibility.
+
+        Maps workshop schema to the format expected by the frontend UI.
+        """
         flat = {}
 
+        # Submission/Source fields
+        if self.submission:
+            flat["source_filename"] = self.submission.source_filename or ""
+            flat["source_file_type"] = "pdf"
+            flat["submitter_organization"] = self.submission.extracted_by or ""
+
         # Building fields
-        if self.building_snapshot:
-            flat.update({
-                "building_id": self.building_snapshot.building_id,
-                "building_name": self.building_snapshot.building_name,
-                "address": self.building_snapshot.address,
-                "property_type": self.building_snapshot.property_type,
-                "year_built": self.building_snapshot.year_built,
-            })
-            if self.building_snapshot.gross_floor_area:
-                flat["gross_floor_area"] = self.building_snapshot.gross_floor_area.value
-                flat["floor_area_unit"] = self.building_snapshot.gross_floor_area.unit
+        if self.building:
+            flat["building_name"] = self.building.building_name or ""
+            flat["building_address"] = self.building.address or ""
+            flat["primary_property_type"] = self.building.property_type or ""
+
+            if self.building.gross_floor_area:
+                flat["gross_floor_area"] = {
+                    "value": self.building.gross_floor_area.value,
+                    "unit": self.building.gross_floor_area.unit
+                }
+                flat["primary_property_type_area"] = {
+                    "value": self.building.gross_floor_area.value,
+                    "unit": self.building.gross_floor_area.unit
+                }
+            else:
+                flat["gross_floor_area"] = {"value": 0, "unit": "sf"}
+                flat["primary_property_type_area"] = {"value": 0, "unit": "sf"}
+
+            # Required field with default
+            flat["zip_code"] = {"value": 0, "unit": ""}
+            flat["site_eui_at_audit"] = {"value": 0, "unit": "kBtu/sf"}
 
         # Audit fields
-        if self.audit_info:
-            flat.update({
-                "audit_date": self.audit_info.audit_date,
-                "auditor_name": self.audit_info.auditor_name,
-                "audit_type": self.audit_info.audit_type,
-            })
+        if self.audit:
+            flat["audit_type"] = self.audit.audit_type
+            flat["audit_completion_date"] = self.audit.audit_date
 
         # ECM fields
-        ecm = self.ecm_detail
-        flat.update({
-            "ecm_name": ecm.name,
-            "ecm_description": ecm.description,
-            "ecm_category": ecm.ecm_category,
-            "implementation_status": ecm.implementation_status,
-            "priority": ecm.priority,
-            "existing_equipment": ecm.existing_equipment,
-            "proposed_equipment": ecm.proposed_equipment,
-            "notes": ecm.notes,
-        })
+        if self.ecm:
+            flat["ecm_name"] = self.ecm.name
+            flat["ecm_description"] = self.ecm.description or ""
+            flat["ecm_additional_details"] = self.ecm.notes or ""
+            flat["ecm_status"] = self.ecm.implementation_status or "recommended"
+            flat["ecm_scope"] = self.ecm.ecm_category or "Other"
 
-        if ecm.cost_estimate:
-            flat["cost_estimate"] = ecm.cost_estimate.value
-            flat["cost_currency"] = ecm.cost_estimate.currency
+            # Financial fields - convert to ValueWithUnit format
+            if self.ecm.cost_estimate:
+                flat["implementation_cost"] = {
+                    "value": self.ecm.cost_estimate.value,
+                    "unit": self.ecm.cost_estimate.currency
+                }
+            else:
+                flat["implementation_cost"] = {"value": 0, "unit": "USD"}
 
-        if ecm.annual_cost_savings:
-            flat["annual_cost_savings"] = ecm.annual_cost_savings.value
-            flat["cost_savings_currency"] = ecm.annual_cost_savings.currency
+            # Incentives
+            flat["incentives"] = {"value": 0, "unit": "USD"}
 
-        if ecm.annual_energy_savings:
-            flat["annual_energy_savings"] = ecm.annual_energy_savings.value
-            flat["energy_savings_unit"] = ecm.annual_energy_savings.unit
+            # Lifetime
+            if self.ecm.useful_life:
+                flat["ecm_lifetime"] = {
+                    "value": self.ecm.useful_life.value,
+                    "unit": self.ecm.useful_life.unit
+                }
+            else:
+                flat["ecm_lifetime"] = {"value": 15, "unit": "year"}
 
-        if ecm.simple_payback:
-            flat["simple_payback"] = ecm.simple_payback.value
-            flat["payback_unit"] = ecm.simple_payback.unit
+            # Savings entries - convert to array format
+            savings_entries = []
 
-        if ecm.useful_life:
-            flat["useful_life"] = ecm.useful_life.value
-            flat["useful_life_unit"] = ecm.useful_life.unit
+            # Electric savings
+            if self.ecm.annual_energy_savings:
+                electric_entry = {
+                    "fuel_type": "Electricity",
+                    "energy_savings": {
+                        "value": self.ecm.annual_energy_savings.value,
+                        "unit": self.ecm.annual_energy_savings.unit
+                    }
+                }
+                if self.ecm.annual_cost_savings:
+                    electric_entry["cost_savings"] = {
+                        "value": self.ecm.annual_cost_savings.value,
+                        "unit": self.ecm.annual_cost_savings.currency
+                    }
+                if self.ecm.annual_demand_reduction:
+                    electric_entry["demand_savings"] = {
+                        "value": self.ecm.annual_demand_reduction,
+                        "unit": "kW"
+                    }
+                savings_entries.append(electric_entry)
 
-        flat["annual_demand_reduction_kw"] = ecm.annual_demand_reduction
+            # Add savings by fuel if available
+            if self.ecm.savings_by_fuel:
+                for fuel_saving in self.ecm.savings_by_fuel:
+                    entry = {"fuel_type": fuel_saving.fuel_type}
+                    if fuel_saving.energy_savings:
+                        entry["energy_savings"] = {
+                            "value": fuel_saving.energy_savings.value,
+                            "unit": fuel_saving.energy_savings.unit
+                        }
+                    if fuel_saving.cost_savings:
+                        entry["cost_savings"] = {
+                            "value": fuel_saving.cost_savings.value,
+                            "unit": fuel_saving.cost_savings.currency
+                        }
+                    if fuel_saving.demand_reduction:
+                        entry["demand_savings"] = {
+                            "value": fuel_saving.demand_reduction,
+                            "unit": "kW"
+                        }
+                    savings_entries.append(entry)
 
-        # Metadata
-        if self.submission_metadata:
-            flat.update({
-                "source_filename": self.submission_metadata.source_filename,
-                "extraction_date": self.submission_metadata.extraction_date,
-            })
+            flat["savings_entries"] = savings_entries if savings_entries else []
 
         return flat
 

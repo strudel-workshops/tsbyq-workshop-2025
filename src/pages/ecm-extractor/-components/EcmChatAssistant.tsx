@@ -12,7 +12,6 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
-import OpenAI from 'openai';
 import { EcmData } from '../-types/ecm.types';
 
 interface Message {
@@ -23,16 +22,14 @@ interface Message {
 
 interface EcmChatAssistantProps {
   ecmData: EcmData[];
-  apiKey?: string;
 }
 
 /**
  * Chat Assistant Component
- * Provides an AI-powered chat interface for querying ECM data
+ * Provides an AI-powered chat interface for querying ECM data using CBorg backend
  */
 export const EcmChatAssistant: React.FC<EcmChatAssistantProps> = ({
   ecmData,
-  apiKey,
 }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -58,13 +55,6 @@ export const EcmChatAssistant: React.FC<EcmChatAssistantProps> = ({
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
-    if (!apiKey) {
-      setError(
-        'Please set your OpenAI API key in the environment variable VITE_OPENAI_API_KEY'
-      );
-      return;
-    }
-
     const userMessage: Message = {
       role: 'user',
       content: input,
@@ -77,45 +67,37 @@ export const EcmChatAssistant: React.FC<EcmChatAssistantProps> = ({
     setError(null);
 
     try {
-      // Prepare context for the AI
-      const systemPrompt = `You are an expert energy analyst assistant helping users understand Energy Conservation Measure (ECM) data. 
+      // Build messages array for backend
+      const chatMessages = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      chatMessages.push({ role: 'user', content: input });
 
-Here is the ECM data you're analyzing:
-${JSON.stringify(ecmData, null, 2)}
-
-Your role:
-- Answer questions about specific ECMs, their costs, savings, and payback periods
-- Compare different measures and provide recommendations
-- Explain technical terms in simple language
-- Calculate totals, averages, and ROI when asked
-- Provide insights on energy efficiency and cost-effectiveness
-
-Be concise but informative. Use specific numbers from the data when relevant.`;
-
-      // Initialize OpenAI client with CBORG base URL
-      const baseUrl =
-        import.meta.env.VITE_CHAT_API_URL || 'https://api.openai.com/v1';
-      const client = new OpenAI({
-        apiKey: apiKey,
-        baseURL: baseUrl,
-        dangerouslyAllowBrowser: true, // Required for browser usage
+      // Call backend chat API
+      const response = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: chatMessages,
+          ecm_data: ecmData,
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
       });
 
-      // Use OpenAI SDK to call the chat completion API
-      const response = await client.chat.completions.create({
-        model: 'openai/gpt-4o', // CBORG model format
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
-          { role: 'user', content: input },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to get response from AI');
+      }
+
+      const data = await response.json();
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: response.choices[0].message.content || 'No response',
+        content: data.message || 'No response',
         timestamp: new Date(),
       };
 
@@ -256,15 +238,13 @@ Be concise but informative. Use specific numbers from the data when relevant.`;
             <SendIcon />
           </IconButton>
         </Stack>
-        {!apiKey && (
-          <Typography
-            variant="caption"
-            color="error"
-            sx={{ mt: 1, display: 'block' }}
-          >
-            No API key configured. Set VITE_OPENAI_API_KEY environment variable.
-          </Typography>
-        )}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mt: 1, display: 'block' }}
+        >
+          Powered by CBorg LLM
+        </Typography>
       </Box>
     </Paper>
   );

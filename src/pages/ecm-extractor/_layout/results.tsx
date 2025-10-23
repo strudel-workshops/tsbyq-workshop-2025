@@ -12,7 +12,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEcmExtractor } from '../-context/ContextProvider';
 import { resetState } from '../-context/actions';
 import { JsonViewer } from '../-components/JsonViewer';
@@ -70,8 +70,14 @@ function ResultsPage() {
     setTabValue(newValue);
   };
 
+  // Navigate away if no results (wrapped in useEffect to avoid render-time navigation)
+  useEffect(() => {
+    if (!state.ecmResults) {
+      navigate({ to: '/ecm-extractor' });
+    }
+  }, [state.ecmResults, navigate]);
+
   if (!state.ecmResults) {
-    navigate({ to: '/ecm-extractor' });
     return null;
   }
 
@@ -84,9 +90,6 @@ function ResultsPage() {
   const buildingInfo = extractBuildingInfo(ecmDataArray);
   const ecmSummary = calculateEcmSummary(ecmDataArray);
   const ecmTableRows = transformToTableRows(ecmDataArray);
-
-  // Get API key from environment variable
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
   return (
     <Box
@@ -199,7 +202,7 @@ function ResultsPage() {
           backgroundColor: 'background.paper',
         }}
       >
-        <EcmChatAssistant ecmData={ecmDataArray} apiKey={apiKey} />
+        <EcmChatAssistant ecmData={ecmDataArray} />
       </Box>
     </Box>
   );

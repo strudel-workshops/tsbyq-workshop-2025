@@ -68,6 +68,19 @@ class ECMExtractionResponse(BaseModel):
     record_count: int
 
 
+class ChatRequest(BaseModel):
+    """Request model for chat completion."""
+    messages: List[Dict[str, str]]
+    ecm_data: List[Dict[str, Any]]
+    temperature: float = 0.7
+    max_tokens: int = 500
+
+
+class ChatResponse(BaseModel):
+    """Response model for chat completion."""
+    message: str
+
+
 class PdfMetadata(BaseModel):
     """Metadata for an uploaded PDF."""
     id: str
@@ -200,8 +213,9 @@ async def extract_ecm_endpoint(request: ExtractECMRequest):
             client=llm_client,
         )
 
-        # Convert to dictionaries
-        record_dicts = [record.model_dump() for record in records]
+        # Convert to flat dictionaries for frontend compatibility
+        # The frontend expects a flat structure with fields like ecm_name, building_name, etc.
+        record_dicts = [record.to_flat_dict() for record in records]
 
         # Save ECM results if pdf_id is provided
         if request.pdf_id:
@@ -404,6 +418,66 @@ async def delete_pdf(pdf_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to delete PDF: {str(e)}"
+        ) from e
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    """Chat with AI assistant about ECM data using CBorg LLM.
+
+    Args:
+        request: Chat request with messages and ECM data context
+
+    Returns:
+        AI assistant response
+
+    Raises:
+        HTTPException: If chat fails
+    """
+    try:
+        # Initialize LLM client
+        llm_client = CBorgLLMClient()
+
+        # Build system prompt with ECM data context
+        system_prompt = f"""You are an expert energy analyst assistant helping users understand Energy Conservation Measure (ECM) data.
+
+Here is the ECM data you're analyzing:
+{json.dumps(request.ecm_data, indent=2)}
+
+Your role:
+- Answer questions about specific ECMs, their costs, savings, and payback periods
+- Compare different measures and provide recommendations
+- Explain technical terms in simple language
+- Calculate totals, averages, and ROI when asked
+- Provide insights on energy efficiency and cost-effectiveness
+
+Be concise but informative. Use specific numbers from the data when relevant."""
+
+        # Build messages array for the LLM
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(request.messages)
+
+        # Call CBorg LLM
+        response = llm_client.chat_completion(
+            messages=messages,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+        )
+
+        return ChatResponse(message=response)
+
+    except ValueError as e:
+        # API key or configuration error
+        raise HTTPException(
+            status_code=500,
+            detail=f"Configuration error: {str(e)}"
+        ) from e
+
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process chat request: {str(e)}"
         ) from e
 
 

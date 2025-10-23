@@ -27,64 +27,40 @@ def create_extraction_prompt(markdown: str) -> str:
 TASK: Extract ALL Energy Conservation Measures from the document as an array of ECMRecord objects.
 
 IMPORTANT REQUIREMENTS:
-- Return a JSON array of ECMRecord objects (even if only one ECM found)
-- Each ECM should be a separate, complete object
-- Include building information in each record when available
-- Use null for missing values - do not make up data
+- Return an array of JSON objects (even if only one ECM found)
+- Each ECM should be a separate, complete ECMRecord object
+- Include full building information in each record (repeated per ECM)
+- This creates a "flat" structure where building data is denormalized across ECM records
 
-SCHEMA (each ECM record should match this structure):
+SCHEMA (each ECM record in the array should match this):
 ```json
 {schema_json}
 ```
 
-EXTRACTION GUIDELINES:
-1. Identify ALL Energy Conservation Measures in the document
-2. For each ECM, extract:
-   - Name and description
-   - Cost estimates (with currency)
-   - Energy savings (with units like kWh, MMBtu, etc.)
-   - Payback period
-   - Implementation status
-   - Priority level if mentioned
-3. Extract building information (name, address, type, floor area) if available
-4. Extract audit information (date, auditor, type) if available
-5. Format quantities as objects with "value" and "unit" keys
-6. Normalize units (e.g., remove "/year" suffixes, use "kWh" not "kilowatt-hours")
-7. Use canonical unit abbreviations: kWh, MMBtu, USD, sf, etc.
+EXTRACTION INSTRUCTIONS:
+1. Identify ALL Energy Conservation Measures mentioned in the document.
+2. For each ECM, create a complete ECMRecord object with:
+   - The same building information repeated in each record.
+   - Unique ECM details (name, status, costs, savings, etc.).
+   - The same audit information if applicable.
+3. Pay special attention to image descriptions (marked with ```<image-annotation>```).
+4. Extract specific costs, savings, and implementation details for each ECM.
+5. Use null for missing values, do not make up data.
+6. Format every physical quantity as an object with keys "value" and "unit" (preserve decimals):
+   - Energy savings fields (`annual_energy_savings`) - units: kBtu, MMBtu, Btu, kWh, MWh, GWh, therm, GJ.
+   - Peak electric demand (`annual_demand_reduction`) - units: kW, MW, W, hp, ton.
+   - Cost fields (`cost_estimate`, `annual_cost_savings`) - units: USD, CAD, EUR, GBP.
+   - Area fields (`gross_floor_area`) - units: sf, m2, acre.
+   - Time fields (`simple_payback`, `useful_life`) - units: year, month, week, day.
+7. Normalize units to the canonical forms above (e.g., remove `/year` suffixes, use "sf" not "sqft") but do not change numeric values.
+8. Follow schema constraints (enums, required fields, data types).
 
-DOCUMENT CONTENT:
+DOCUMENT:
 ```markdown
 {markdown}
 ```
 
-RESPONSE FORMAT:
-Return ONLY a JSON array of ECMRecord objects. No additional text or explanation.
-
-Example:
-```json
-[
-  {{
-    "building_snapshot": {{
-      "building_name": "Office Building A",
-      "property_type": "Office",
-      "gross_floor_area": {{"value": 50000, "unit": "sf"}}
-    }},
-    "ecm_detail": {{
-      "name": "LED Lighting Upgrade",
-      "description": "Replace existing T8 fluorescent fixtures with LED",
-      "ecm_category": "Lighting",
-      "cost_estimate": {{"value": 25000, "currency": "USD"}},
-      "annual_cost_savings": {{"value": 5000, "currency": "USD"}},
-      "annual_energy_savings": {{"value": 50000, "unit": "kWh"}},
-      "simple_payback": {{"value": 5, "unit": "year"}},
-      "implementation_status": "recommended",
-      "priority": "high"
-    }}
-  }}
-]
-```
-
-JSON RESPONSE:"""
+RESPONSE (Array of complete ECMRecord objects):"""
 
     return prompt
 
@@ -148,7 +124,7 @@ def extract_ecms_from_markdown(
         for i, ecm_data in enumerate(extracted_data, start=1):
             try:
                 record = ECMRecord.model_validate(ecm_data)
-                ecm_name = record.ecm_detail.name
+                ecm_name = record.ecm.name if record.ecm else "Unnamed ECM"
                 print(f"✓ ECM {i}: {ecm_name}")
                 validated_records.append(record)
 

@@ -14,7 +14,7 @@ class CBorgLLMClient:
         self,
         api_key: Optional[str] = None,
         base_url: str = "https://api.cborg.lbl.gov",
-        default_model: str = "google/gemini-2.0-flash-exp",
+        default_model: str = "anthropic/claude-haiku:latest",
     ):
         """Initialize CBorg client.
 
@@ -40,6 +40,20 @@ class CBorgLLMClient:
             "total_output_tokens": 0,
             "total_execution_time": 0.0,
         }
+
+    def chat(self, prompt: str, model: Optional[str] = None, temperature: float = 0.0) -> str:
+        """Simple chat interface - takes a string prompt.
+
+        Args:
+            prompt: User prompt text
+            model: Model to use (defaults to self.default_model)
+            temperature: Sampling temperature (0-1)
+
+        Returns:
+            Response text from the model
+        """
+        messages = [{"role": "user", "content": prompt}]
+        return self.chat_completion(messages, model=model, temperature=temperature)
 
     def chat_completion(
         self,
@@ -80,7 +94,14 @@ class CBorgLLMClient:
             response = requests.post(url, headers=headers, json=payload, timeout=120)
             response.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            raise RuntimeError(f"CBorg API request failed: {exc}") from exc
+            error_detail = ""
+            try:
+                error_detail = f" - Response: {response.text}"
+            except:
+                pass
+            print(f"CBorg API Error: {exc}{error_detail}")
+            print(f"Request payload: {payload}")
+            raise RuntimeError(f"CBorg API request failed: {exc}{error_detail}") from exc
 
         elapsed_time = time.time() - start_time
         result = response.json()
