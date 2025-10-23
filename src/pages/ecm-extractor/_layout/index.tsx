@@ -6,12 +6,18 @@ import {
   Stack,
   Typography,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useEcmExtractor } from '../-context/ContextProvider';
-import { setUploadedFile, setExtractedMarkdown } from '../-context/actions';
+import {
+  setUploadedFile,
+  setMarkdownAndImages,
+  setLoading,
+  setError,
+} from '../-context/actions';
 
 export const Route = createFileRoute('/ecm-extractor/_layout/')({
   component: UploadPage,
@@ -21,10 +27,19 @@ export const Route = createFileRoute('/ecm-extractor/_layout/')({
  * Step 1: Upload PDF page for ECM Extractor
  */
 function UploadPage() {
-  const { dispatch } = useEcmExtractor();
+  const { state, dispatch } = useEcmExtractor();
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const shouldNavigate = useRef(false);
+
+  // Navigate to staging page once markdown is loaded
+  useEffect(() => {
+    if (shouldNavigate.current && state.extractedMarkdown) {
+      shouldNavigate.current = false;
+      navigate({ to: '/ecm-extractor/staging' });
+    }
+  }, [state.extractedMarkdown, navigate]);
 
   const handleFileSelect = (file: File) => {
     if (file.type === 'application/pdf') {
@@ -59,34 +74,52 @@ function UploadPage() {
     }
   };
 
-  const handleUploadAndProcess = () => {
-    if (selectedFile) {
-      dispatch(setUploadedFile(selectedFile));
+  const handleUploadAndProcess = async () => {
+    if (!selectedFile) {
+      return;
+    }
 
-      // Simulate markdown extraction - you'll replace this with actual extraction logic
-      const mockMarkdown = `# Sample Extracted Content from ${selectedFile.name}
+    dispatch(setUploadedFile(selectedFile));
+    dispatch(setLoading(true));
 
-## Energy Conservation Measures
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-### Measure 1: LED Lighting Upgrade
-- **Type**: Lighting
-- **Description**: Replace existing fluorescent lighting with LED fixtures
-- **Energy Savings**: 40-60%
-- **Cost**: $5,000 - $8,000
+      // Call backend API to extract markdown and images
+      const response = await fetch(
+        'http://localhost:8000/api/extract-markdown',
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
 
-### Measure 2: HVAC System Optimization
-- **Type**: HVAC
-- **Description**: Install programmable thermostats and optimize schedule
-- **Energy Savings**: 20-30%
-- **Cost**: $2,000 - $4,000
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.detail || 'Failed to extract markdown from PDF'
+        );
+      }
 
-## Summary
-Total estimated savings: 25-35% reduction in energy costs
-Total estimated cost: $7,000 - $12,000
-Payback period: 2-3 years`;
+      const data = await response.json();
 
-      dispatch(setExtractedMarkdown(mockMarkdown));
-      navigate({ to: '/ecm-extractor/staging' });
+      // Update state with markdown and images
+      // Update state with markdown and images
+      dispatch(setMarkdownAndImages(data.markdown, data.images));
+
+      // Set flag to navigate once state is updated
+      shouldNavigate.current = true;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to process PDF';
+      dispatch(setError(errorMessage));
+      alert(
+        `Error: ${errorMessage}\n\nPlease make sure the backend server is running on http://localhost:8000`
+      );
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 
@@ -181,11 +214,17 @@ Payback period: 2-3 years`;
             <Button
               variant="contained"
               size="large"
-              disabled={!selectedFile}
+              disabled={!selectedFile || state.isLoading}
               onClick={handleUploadAndProcess}
-              startIcon={<CloudUploadIcon />}
+              startIcon={
+                state.isLoading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <CloudUploadIcon />
+                )
+              }
             >
-              Upload and Process
+              {state.isLoading ? 'Processing...' : 'Upload and Process'}
             </Button>
           </Box>
         </Stack>

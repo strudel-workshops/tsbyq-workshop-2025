@@ -12,6 +12,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { useEcmExtractor } from '../-context/ContextProvider';
 import { resetState } from '../-context/actions';
 import { JsonViewer } from '../-components/JsonViewer';
@@ -51,8 +52,14 @@ function ResultsPage() {
     navigate({ to: '/ecm-extractor' });
   };
 
+  // Redirect if no results are available - use useEffect to avoid setState during render
+  useEffect(() => {
+    if (!state.ecmResults) {
+      navigate({ to: '/ecm-extractor' });
+    }
+  }, [state.ecmResults, navigate]);
+
   if (!state.ecmResults) {
-    navigate({ to: '/ecm-extractor' });
     return null;
   }
 

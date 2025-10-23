@@ -2,11 +2,19 @@
  * Actions for ECM Extractor state management
  */
 
+export interface ImageData {
+  id: string;
+  page: number;
+  format: string;
+  data: string; // base64 data URI
+}
+
 export interface EcmExtractorState {
   uploadedFile: File | null;
   fileName: string;
   extractedMarkdown: string;
   editedMarkdown: string;
+  images: ImageData[];
   ecmResults: Record<string, unknown> | null;
   isLoading: boolean;
   error: string | null;
@@ -16,6 +24,11 @@ export type EcmExtractorAction =
   | { type: 'SET_UPLOADED_FILE'; payload: File }
   | { type: 'SET_EXTRACTED_MARKDOWN'; payload: string }
   | { type: 'SET_EDITED_MARKDOWN'; payload: string }
+  | { type: 'SET_IMAGES'; payload: ImageData[] }
+  | {
+      type: 'SET_MARKDOWN_AND_IMAGES';
+      payload: { markdown: string; images: ImageData[] };
+    }
   | { type: 'SET_ECM_RESULTS'; payload: Record<string, unknown> }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string }
@@ -27,6 +40,7 @@ export const initialState: EcmExtractorState = {
   fileName: '',
   extractedMarkdown: '',
   editedMarkdown: '',
+  images: [],
   ecmResults: null,
   isLoading: false,
   error: null,
@@ -56,6 +70,20 @@ export function ecmExtractorReducer(
       return {
         ...state,
         editedMarkdown: action.payload,
+      };
+    case 'SET_IMAGES':
+      return {
+        ...state,
+        images: action.payload,
+      };
+    case 'SET_MARKDOWN_AND_IMAGES':
+      return {
+        ...state,
+        extractedMarkdown: action.payload.markdown,
+        editedMarkdown: action.payload.markdown,
+        images: action.payload.images,
+        isLoading: false,
+        error: null,
       };
     case 'SET_ECM_RESULTS':
       return {
@@ -126,4 +154,17 @@ export const clearError = (): EcmExtractorAction => ({
 
 export const resetState = (): EcmExtractorAction => ({
   type: 'RESET_STATE',
+});
+
+export const setImages = (images: ImageData[]): EcmExtractorAction => ({
+  type: 'SET_IMAGES',
+  payload: images,
+});
+
+export const setMarkdownAndImages = (
+  markdown: string,
+  images: ImageData[]
+): EcmExtractorAction => ({
+  type: 'SET_MARKDOWN_AND_IMAGES',
+  payload: { markdown, images },
 });
